@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Calendario</title>
+
+<!-- Icono -->
+<link rel="icon" href="data:image/svg+xml,
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>
+  <rect x='3' y='4' width='18' height='18' rx='2' ry='2' fill='white' stroke='black'/>
+  <line x1='3' y1='10' x2='21' y2='10' stroke='black'/>
+  <text x='12' y='19' text-anchor='middle' font-size='12' font-family='Arial' fill='black'>✔</text>
+</svg>">
+
+<style>
+  :root { 
+    --gap: .5rem; 
+    --radius: 12px; 
+    --shadow: 0 6px 20px rgba(0,0,0,.08);
+    
+    /* Variables Modo Claro (por defecto) */
+    --bg-body: #f6f7fb;
+    --text-main: #222;
+    --bg-surface: #fff;
+    --bg-head: #fafbff;
+    --border-color: #ececf1;
+    --border-subtle: #eee;
+    --btn-border: #ddd;
+    --btn-hover: #f3f4f8;
+    --btn-hover-border: #cfd3df;
+    --btn-sec-bg: #f5f6fb;
+    --btn-sec-border: #e3e6f0;
+    --weekday-color: #5a6175;
+    --other-month-bg: #fafbff;
+    --other-month-text: #9aa0b4;
+    --day-hover-border: #dcdfee;
+    --day-num-color: #333;
+    --helper-color: #6b7280;
+    --accent: #4f46e5;
+    --input-bg: #fff;
+    --danger-text: #b42318;
+    --danger-border: #f3c1be;
+    --danger-bg: #fff5f5;
+  }
+
+  /* Variables Modo Oscuro */
+  body.dark-mode {
+    --shadow: 0 6px 20px rgba(0,0,0,.45);
+    --bg-body: #0f1117;
+    --text-main: #e5e7eb;
+    --bg-surface: #181b23;
+    --bg-head: #1e222d;
+    --border-color: #2a2f3d;
+    --border-subtle: #262b38;
+    --btn-border: #363c4e;
+    --btn-hover: #282d3c;
+    --btn-hover-border: #4b536b;
+    --btn-sec-bg: #222634;
+    --btn-sec-border: #32384a;
+    --weekday-color: #9ca3af;
+    --other-month-bg: #13161d;
+    --other-month-text: #565d70;
+    --day-hover-border: #4f46e5;
+    --day-num-color: #f3f4f6;
+    --helper-color: #9ca3af;
+    --accent: #6366f1;
+    --input-bg: #12151c;
+    --danger-text: #f87171;
+    --danger-border: #7f1d1d;
+    --danger-bg: #2b1414;
+  }
+
+  body { 
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; 
+    background: var(--bg-body); 
+    color: var(--text-main); 
+    margin:0; 
+    padding:2rem; 
+    overflow-x: hidden;
+    transition: background .25s ease, color .25s ease;
+  }
+  .calendar {
+    max-width: 1000px;
+    margin: 0 auto; 
+    background: var(--bg-surface); 
+    border-radius: var(--radius);
+    box-shadow: var(--shadow); 
+    overflow:hidden; 
+    border:1px solid var(--border-color);
+  }
+  .cal-head {
+    display:flex; align-items:center; justify-content:space-between; padding:1rem 1.25rem; gap:.75rem;
+    border-bottom:1px solid var(--border-subtle); background: var(--bg-head);
+  }
+  .cal-title { font-weight:700; font-size: clamp(1.1rem, 2.5vw, 1.4rem); display:flex; align-items:center; gap:.5rem; }
+  .cal-title i { color: var(--accent); }
+  .cal-nav { display:flex; gap:.5rem; }
+  .btn {
+    border:1px solid var(--btn-border); background: var(--bg-surface); color: var(--text-main);
+    padding:.5rem .75rem; border-radius:10px; cursor:pointer;
+    transition: transform .04s ease, background .2s ease, border-color .2s ease;
+  }
+  .btn:hover { background: var(--btn-hover); border-color: var(--btn-hover-border); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary { background: var(--btn-sec-bg); border-color: var(--btn-sec-border); }
+
+  .weekdays, .grid { display:grid; grid-template-columns: repeat(7, 1fr); }
+  .weekdays { padding:.5rem 1rem; gap:var(--gap); background: var(--bg-surface); border-bottom:1px solid var(--border-subtle); }
+  .weekday { text-align:center; font-weight:600; color: var(--weekday-color); padding:.25rem 0; font-size:.9rem; }
+  .grid { padding: 1rem; gap: var(--gap); background: var(--bg-surface); }
+  .day {
+    position:relative; 
+    min-height:85px;
+    border:1px solid var(--border-color); 
+    border-radius:12px; 
+    background: var(--bg-surface);
+    color: var(--text-main);
+    display:flex; flex-direction:column; 
+    overflow:hidden; cursor:pointer; 
+    transition: box-shadow .15s ease, border-color .2s ease, transform .04s ease;
+  }
+  .day:hover { box-shadow: var(--shadow); border-color: var(--day-hover-border); }
+  .day.other-month { background: var(--other-month-bg); color: var(--other-month-text); }
+  .day.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .day-number { font-weight:700; padding:.5rem .6rem; font-size:.95rem; color: var(--day-num-color); display:flex; align-items:center; gap:.4rem; }
+  .day.other-month .day-number { color: var(--other-month-text); }
+  .note { padding: .3rem .6rem .7rem; font-size:.9rem; line-height:1.25rem; white-space:pre-wrap; word-wrap:break-word; flex:1; text-align: left; }
+  .color-dot { width:.8rem; height:.8rem; border-radius:50%; border:1px solid rgba(0,0,0,.15); display:inline-block; }
+  .color-bg { position:absolute; inset:0; opacity:.15; pointer-events:none; }
+
+  /* Modal */
+  dialog { 
+    border:1px solid var(--border-color); border-radius:16px; box-shadow: var(--shadow); 
+    width: min(520px, calc(100vw - 2rem)); padding:0; overflow:hidden; 
+    background: var(--bg-surface); color: var(--text-main);
+  }
+  dialog::backdrop { background: rgba(5, 8, 23, .55); backdrop-filter: blur(2px); }
+  .modal-head { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; border-bottom:1px solid var(--border-subtle); background: var(--bg-head); }
+  .modal-title { font-weight:700; }
+  .modal-body { padding:1rem 1.25rem; display:grid; gap:.75rem; }
+  .field { display:grid; gap:.4rem; }
+  textarea { 
+    resize:vertical; min-height:90px; padding:.75rem; border-radius:10px; 
+    border:1px solid var(--btn-border); font: inherit; 
+    background: var(--input-bg); color: var(--text-main);
+  }
+  input[type="color"] { width: 56px; height: 36px; padding:0; border:1px solid var(--btn-border); border-radius:8px; background: var(--input-bg); cursor: pointer; }
+  .modal-actions { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.25rem; border-top:1px solid var(--border-subtle); gap:.5rem; }
+  .actions-left, .actions-right { display:flex; gap:.5rem; flex-wrap:wrap; }
+  .btn.danger { color: var(--danger-text); border-color: var(--danger-border); background: var(--danger-bg); }
+  .helper { color: var(--helper-color); font-size:.9rem; }
+
+  /* Botón flotante cambio de tema */
+  .theme-toggle {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .75rem 1.1rem;
+    border-radius: 999px;
+    border: 1px solid var(--btn-border);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    font-weight: 600;
+    font-size: .9rem;
+    cursor: pointer;
+    transition: transform .15s ease, background .25s ease, border-color .25s ease;
+  }
+  .theme-toggle:hover {
+    transform: translateY(-2px);
+    background: var(--btn-hover);
+  }
+  .theme-toggle:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 720px) {
+    body { padding: 1rem; padding-bottom: 4.5rem; }
+    .day { min-height: 70px; }
+    .weekday { font-size:.8rem; }
+    .note { font-size:.85rem; }
+    .theme-toggle { bottom: 1rem; right: 1rem; padding: .65rem .95rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="calendar" id="calendar">
+    <div class="cal-head">
+      <div class="cal-nav">
+        <button class="btn" id="prevBtn" aria-label="Mes anterior">◀</button>
+        <button class="btn secondary" id="todayBtn">Hoy</button>
+        <button class="btn" id="nextBtn" aria-label="Mes siguiente">▶</button>
+      </div>
+      <div class="cal-title" id="calTitle" aria-live="polite">
+        <i class="fa-solid fa-calendar-days"></i>
+      </div>
+      <div class="helper">Haz clic en un día para editar</div>
+    </div>
+
+    <div class="weekdays" id="weekdays"></div>
+    <div class="grid" id="grid" role="grid" aria-label="Calendario"></div>
+  </div>
+
+  <!-- Botón flotante para modo claro / oscuro -->
+  <button class="theme-toggle" id="themeToggle" aria-label="Cambiar tema">
+    <span id="themeIcon">🌙</span>
+    <span id="themeText">Modo oscuro</span>
+  </button>
+
+  <dialog id="editor">
+    <form method="dialog" id="editorForm">
+      <div class="modal-head">
+        <div class="modal-title" id="modalTitle">Editar día</div>
+        <button class="btn" value="cancel" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label for="noteText">Texto / notas</label>
+          <textarea id="noteText" placeholder="Escribe algo para este día…"></textarea>
+        </div>
+        <div class="field">
+          <label for="colorInput">Color del día</label>
+          <input type="color" id="colorInput" value="#ffff88" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <div class="actions-left">
+          <button type="button" class="btn danger" id="clearBtn">Borrar</button>
+        </div>
+        <div class="actions-right">
+          <button class="btn" value="cancel">Cancelar</button>
+          <button class="btn" id="saveBtn" value="default">Guardar</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+<script>
+(() => {
+  /* --- Lógica de Tema Claro / Oscuro --- */
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  const themeText = document.getElementById('themeText');
+  const THEME_KEY = 'cal-theme-v1';
+
+  function applyTheme(isDark) {
+    document.body.classList.toggle('dark-mode', isDark);
+    themeIcon.textContent = isDark ? '☀️' : '🌙';
+    themeText.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+  }
+
+  // Cargar preferencia guardada
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  applyTheme(savedTheme === 'dark');
+
+  themeToggle.addEventListener('click', () => {
+    const isDark = !document.body.classList.contains('dark-mode');
+    applyTheme(isDark);
+    localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+  });
+
+  /* --- Lógica del Calendario --- */
+  const pad = n => String(n).padStart(2,'0');
+  const fmtKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+  let viewYear, viewMonth;
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  const calTitle = document.getElementById('calTitle');
+  const grid = document.getElementById('grid');
+  const weekdaysEl = document.getElementById('weekdays');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const todayBtn = document.getElementById('todayBtn');
+
+  const editor = document.getElementById('editor');
+  const modalTitle = document.getElementById('modalTitle');
+  const noteText = document.getElementById('noteText');
+  const colorInput = document.getElementById('colorInput');
+  const clearBtn = document.getElementById('clearBtn');
+  const saveBtn = document.getElementById('saveBtn');
+
+  const monthNames = new Intl.DateTimeFormat('es-ES', { month: 'long' });
+  const weekOrder = [2,3,4,5,6,0,1]; // lunes primero
+  weekdaysEl.innerHTML = weekOrder.map(w => {
+    const d = new Date(2025, 5, w===0?7:w);
+    return `<div class="weekday">${new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(d).replace('.','')}</div>`;
+  }).join('');
+
+  const STORAGE_KEY = 'cal-notes-v1';
+  const loadData = () => JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  const saveData = (data) => localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+  function render(y, m){
+    viewYear = y; viewMonth = m;
+    const first = new Date(y, m, 1);
+    const last = new Date(y, m+1, 0);
+    const firstWeekday = (first.getDay() + 6) % 7;
+    const daysInMonth = last.getDate();
+
+    const prevMonthDays = firstWeekday;
+    const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7;
+
+    calTitle.innerHTML = `<i class="fa-solid fa-calendar-days"></i> ${monthNames.format(first)[0].toUpperCase() + monthNames.format(first).slice(1)} ${y}`;
+
+    const data = loadData();
+    const cells = [];
+    for(let i=0; i<totalCells; i++){
+      const dayNum = i - prevMonthDays + 1;
+      let cellDate, inMonth = true;
+
+      if(dayNum < 1){
+        cellDate = new Date(y, m, dayNum); inMonth = false;
+      } else if(dayNum > daysInMonth){
+        cellDate = new Date(y, m, dayNum); inMonth = false;
+      } else {
+        cellDate = new Date(y, m, dayNum);
+      }
+
+      const key = fmtKey(cellDate);
+      const item = data[key] || {};
+      const isToday = cellDate.getTime() === today.getTime();
+
+      const safeText = (item.text || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+      const color = item.color || '';
+      const colorBg = color ? `<div class="color-bg" style="background:${color}"></div>` : '';
+      const dot = color ? `<span class="color-dot" style="background:${color}"></span>` : '';
+
+      cells.push(`
+        <button class="day ${inMonth ? '' : 'other-month'} ${isToday ? 'today' : ''}"
+                data-date="${key}" aria-label="Editar ${key}" role="gridcell">
+          ${colorBg}
+          <div class="day-number">${dot}<span>${cellDate.getDate()}</span></div>
+          <div class="note">${safeText}</div>
+        </button>
+      `);
+    }
+    grid.innerHTML = cells.join('');
+    attachDayHandlers();
+  }
+
+  function attachDayHandlers(){
+    grid.querySelectorAll('.day').forEach(btn => {
+      btn.addEventListener('click', () => openEditor(btn.dataset.date));
+      btn.addEventListener('keyup', (e) => { if(e.key === 'Enter' || e.key === ' ') openEditor(btn.dataset.date); });
+    });
+  }
+
+  let editingKey = null;
+  function openEditor(key){
+    editingKey = key;
+    const data = loadData();
+    const item = data[key] || {};
+    noteText.value = item.text || '';
+    colorInput.value = item.color || '#ffff88';
+    const [y,m,d] = key.split('-');
+    modalTitle.textContent = `Editar día ${d}/${m}/${y}`;
+    editor.showModal();
+    setTimeout(() => noteText.focus(), 50);
+  }
+
+  function saveCurrent(){
+    const data = loadData();
+    if(!editingKey) return;
+    const text = noteText.value.trim();
+    const color = colorInput.value;
+    if(text || color){
+      data[editingKey] = { text, color };
+    } else {
+      delete data[editingKey];
+    }
+    saveData(data);
+    render(viewYear, viewMonth);
+  }
+
+  function clearCurrent(){
+    const data = loadData();
+    if(editingKey && data[editingKey]){
+      delete data[editingKey];
+      saveData(data);
+      render(viewYear, viewMonth);
+    }
+    editor.close();
+  }
+
+  saveBtn.addEventListener('click', (e) => { e.preventDefault(); saveCurrent(); editor.close(); });
+  clearBtn.addEventListener('click', (e) => { e.preventDefault(); clearCurrent(); });
+
+  prevBtn.addEventListener('click', () => {
+    const m = viewMonth - 1; const y = m < 0 ? viewYear - 1 : viewYear;
+    render(y, (m + 12) % 12);
+  });
+  nextBtn.addEventListener('click', () => {
+    const m = viewMonth + 1; const y = m > 11 ? viewYear + 1 : viewYear;
+    render(y, m % 12);
+  });
+  todayBtn.addEventListener('click', () => {
+    render(today.getFullYear(), today.getMonth());
+  });
+
+  render(today.getFullYear(), today.getMonth());
+})();
+</script>
+</body>
+</html>
